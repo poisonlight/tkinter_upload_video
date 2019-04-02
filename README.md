@@ -8,7 +8,9 @@
 
   `https://portal.qiniu.com/bucket/mytest/resource`
 
++ 七牛云python_SDK地址
 
+  `https://developer.qiniu.com/kodo/sdk/1242/python`
 
 
 
