@@ -6,7 +6,7 @@ import os
 import random
 from tkinter import *
 from tkinter.filedialog import askdirectory
-from qiniu import Auth, put_file, etag
+from qiniu import Auth, put_file, etag, build_batch_stat, BucketManager
 
 # 实例化tkinter创建主窗口
 win = tkinter.Tk()
@@ -181,22 +181,37 @@ def upload():
     mydict = dict(zip(file_path_list, keylist))
 
     for file_path, key in mydict.items():
-        # 生成上传 Token，可以指定过期时间等
-        token = q.upload_token(bucket_name, key, 3600)
-        # localfile = r'D:\公司文件\中国成语故事补录\045chirenshuomeng.mp4'
-        # 写文件命名对应关系的日志
-        localfile = file_path
-        f, p = os.path.split(file_path)
-        content = p + '  --------------------->  ' + key + u'\n'
-        with open('log.txt', 'a+', encoding='utf-8') as fp:
-            fp.write(content)
-        ret, info = put_file(token, key, localfile)
-        print(info)
-        # if ret:
-        assert ret['key'] == key
-        assert ret['hash'] == etag(localfile)
-        # else:
-        #     '上传失败'
+        # 需要查询的文件名
+        bucket = BucketManager(q)
+        keys = [key]
+        ops = build_batch_stat(bucket_name, keys)
+        ret, info = bucket.batch(ops)
+        # print(ret)
+        if ret is not None:
+            # 生成上传 Token，可以指定过期时间等
+            # token = q.upload_token(bucket_name, key, 3600)
+            token = q.upload_token(bucket_name, key)
+            # localfile = r'D:\公司文件\中国成语故事补录\045chirenshuomeng.mp4'
+            # 写文件命名对应关系的日志
+            localfile = file_path
+            f, p = os.path.split(file_path)
+            content = p + '  --------------------->  ' + key + u'\n'
+            with open('log.txt', 'a+', encoding='utf-8') as fp:
+                fp.write(content)
+            ret, info = put_file(token, key, localfile)
+            print(info)
+            # if ret:
+            assert ret['key'] == key                       # 不明白这个assert 这两行什么意思
+            assert ret['hash'] == etag(localfile)
+            # else:
+            #     '上传失败'
+        else:
+            print('文件名称已存在')
+            f1, p1 = os.path.split(file_path)
+            content1 = p1 + '  --------------------->  ' + key + u'\n'
+            with open('updateError.txt', 'a+', encoding='utf-8') as fp:
+                fp.write(content1)
+                fp.close()
 
 # 一键上传
 b3 = Button(win, text='一键上传', width=15, height=1, command=upload)
